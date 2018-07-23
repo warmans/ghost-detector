@@ -12,4 +12,4 @@ build.x86:
 
 sync: 
 	@echo "Syncing $(DIR) to $(PI_IP)..."
-	@rsync -avr --progress --exclude=".git" $(DIR) pi@$(PI_IP):/home/pi/go/src/github.com/warmans/
+	@rsync -avr --progress $(DIR)/build/*-arm pi@$(PI_IP):/home/pi/.
