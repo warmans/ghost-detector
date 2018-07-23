@@ -5,25 +5,10 @@ import (
 	"fmt"
 	"io"
 	"strings"
-	"math/rand"
 	"time"
+	"github.com/warmans/ghost-detector/pkg/entropy"
 )
 
-type Entropy interface {
-	Intn(max int) int
-}
-
-func NewRandEntropy() *RandEntropy {
-	rand.Seed(time.Now().UnixNano()) // Seed the random number generator.
-	return &RandEntropy{}
-}
-
-type RandEntropy struct {
-}
-
-func (r *RandEntropy) Intn(max int) int {
-	return rand.Intn(max)
-}
 
 // Prefix is a Markov chain prefix of one or more words.
 type Prefix []string
@@ -77,7 +62,7 @@ func (c *Chain) Build(r io.Reader) {
 }
 
 // Generate returns a string of at most n words generated from Chain.
-func (c *Chain) Generate(frequency time.Duration, ent Entropy) chan string {
+func (c *Chain) Generate(frequency time.Duration, ent entropy.Rander) chan string {
 	out := make(chan string)
 	go func() {
 		ticker := time.NewTicker(time.Second * frequency)
@@ -97,7 +82,7 @@ func (c *Chain) Generate(frequency time.Duration, ent Entropy) chan string {
 	return out
 }
 
-func (c *Chain) getStartPoint(ent Entropy) Prefix {
+func (c *Chain) getStartPoint(ent entropy.Rander) Prefix {
 	start := ent.Intn(len(c.chain))
 	for k := range c.chain {
 		start--

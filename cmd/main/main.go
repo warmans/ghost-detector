@@ -8,30 +8,32 @@ import (
 	"syscall"
 	"os/signal"
 	"time"
+	"github.com/warmans/ghost-detector/pkg/entropy"
 )
 
 var (
-	prefixLen = flag.Int("prefix", 2, "prefix length in words")
-	randomize = flag.Bool("randomize", false, "use RNG instead of sensor input")
+	prefixLen     = flag.Int("prefix", 2, "prefix length in words")
+	randomize     = flag.Bool("randomize", false, "use RNG instead of sensor input")
 	wordFrequency = flag.Int("word-frequency", 1, "print a word every N seconds")
 )
 
 func main() {
 	flag.Parse() // Parse command-line flags.
 
-	var entropy words.Entropy
+	var ent entropy.Rander
 	if *randomize {
-		entropy = words.NewRandEntropy()
+		ent = entropy.NewRand()
 	} else {
-		entropy = words.NewRandEntropy()
+		//todo
+		ent = entropy.NewRand()
 	}
 
 	fmt.Println("Reading input...")
-	chain := words.NewChain(*prefixLen)        // Initialize a new Chain.
-	chain.Build(os.Stdin)                      // Build chains from standard input.
+	chain := words.NewChain(*prefixLen) // Initialize a new Chain.
+	chain.Build(os.Stdin)               // Build chains from standard input.
 
 	fmt.Println("Detecting...")
-	chainOut := chain.Generate(time.Duration(*wordFrequency), entropy) // Generate text.
+	chainOut := chain.Generate(time.Duration(*wordFrequency), ent) // Generate text.
 	for {
 		c := make(chan os.Signal)
 		signal.Notify(c, os.Interrupt, syscall.SIGTERM)
