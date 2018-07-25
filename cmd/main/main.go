@@ -9,22 +9,30 @@ import (
 	"os/signal"
 	"time"
 	"github.com/warmans/ghost-detector/pkg/entropy"
+	"github.com/warmans/ghost-detector/pkg/entropy/sensor"
+	"github.com/warmans/go-rpio"
+	"log"
 )
 
 var (
-	prefixLen     = flag.Int("prefix", 2, "prefix length in words")
-	randomize     = flag.Bool("randomize", false, "use RNG instead of sensor input")
-	wordFrequency = flag.Int("word-frequency", 1, "print a word every N seconds")
+	prefixLen     = flag.Int("word.prefix", 2, "prefix length in words")
+	wordFrequency = flag.Int("word.frequency", 1, "print a word every N seconds")
+	sensorName = flag.String("sensor.name", "rand", "source of entropy rand, light")
+	sensorSimulate      = flag.Bool("sensor.simulate", false, "Use a simulated GPIO")
 )
 
 func main() {
-	flag.Parse() // Parse command-line flags.
+	flag.Parse()
+
+	device := makeDevice()
+	if err := device.Open(); err != nil {
+		log.Fatal(err)
+	}
 
 	var ent entropy.Rander
-	if *randomize {
-		ent = entropy.NewRand()
+	if *sensorName == "light" {
+		ent = sensor.NewLightSensor(device.Pin(4, rpio.Output, rpio.PullOff))
 	} else {
-		//todo
 		ent = entropy.NewRand()
 	}
 
@@ -45,4 +53,16 @@ func main() {
 			fmt.Printf("%s ", out)
 		}
 	}
+}
+
+
+func makeDevice() rpio.Device {
+	// use
+	var device rpio.Device
+	if *sensorSimulate {
+		device = rpio.NewPi3Simulator(true)
+	} else {
+		device = rpio.NewPhysicalDevice()
+	}
+	return device
 }
