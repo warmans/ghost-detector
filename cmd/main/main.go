@@ -21,6 +21,11 @@ var (
 )
 
 func main() {
+
+	if "" == os.Getenv("SUDO_USER") {
+		panic("pwm requires sudo to work")
+	}
+
 	flag.Parse()
 
 	if err := rpio.Open(); err != nil {
