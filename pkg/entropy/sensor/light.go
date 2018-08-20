@@ -1,20 +1,20 @@
 package sensor
 
 import (
-	"github.com/warmans/go-rpio"
 	"time"
+	"github.com/stianeikeland/go-rpio"
 )
 
 const maxChargeTime = 50000
 
-func NewLightSensor(pin *rpio.Pin) *LightSensor {
+func NewLightSensor(pin rpio.Pin) *LightSensor {
 	sensor := &LightSensor{pin: pin}
 	go sensor.start()
 	return sensor
 }
 
 type LightSensor struct {
-	pin          *rpio.Pin
+	pin          rpio.Pin
 	currentValue int
 }
 

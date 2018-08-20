@@ -9,30 +9,29 @@ import (
 	"os/signal"
 	"github.com/warmans/ghost-detector/pkg/entropy"
 	"github.com/warmans/ghost-detector/pkg/entropy/sensor"
-	"github.com/warmans/go-rpio"
-	"log"
+	"github.com/stianeikeland/go-rpio"
 	"time"
+	"github.com/warmans/ghost-detector/pkg/output/guage"
 )
 
 var (
 	prefixLen     = flag.Int("word.prefix", 2, "prefix length in words")
 	wordFrequency = flag.Int("word.frequency", 1, "print a word every N seconds")
 	sensorName = flag.String("sensor.name", "rand", "source of entropy rand, light")
-	sensorSimulate      = flag.Bool("sensor.simulate", false, "Use a simulated GPIO")
 )
 
 func main() {
 	flag.Parse()
 
-	device := makeDevice()
-	if err := device.Open(); err != nil {
-		log.Fatal(err)
+	if err := rpio.Open(); err != nil {
+		panic(err)
 	}
+	defer rpio.Close()
 
 	var ent entropy.Rander
 	switch *sensorName {
 	case "light":
-		ent = sensor.NewLightSensor(device.Pin(4, rpio.Output, rpio.PullOff))
+		ent = sensor.NewLightSensor(getPin(4, rpio.Input, rpio.Low))
 	default:
 		ent = entropy.NewRand()
 	}
@@ -41,7 +40,11 @@ func main() {
 	chain := words.NewChain(*prefixLen) // Initialize a new Chain.
 	chain.Build(os.Stdin)               // Build chains from standard input.
 
-	ent.Intn(10)
+
+	//guage
+	pin := rpio.Pin(19)
+	pin.Mode(rpio.Pwm)
+	g := guage.NewPercentageGuage(pin)
 
 	fmt.Println("Detecting...")
 	chainOut := chain.Generate(time.Duration(*wordFrequency), ent) // Generate text.
@@ -54,18 +57,19 @@ func main() {
 			return
 		case out := <-chainOut:
 			fmt.Printf("%s ", out)
+			g.Write(ent.Intn(100))
 		}
 	}
 }
 
 
-func makeDevice() rpio.Device {
-	// use
-	var device rpio.Device
-	if *sensorSimulate {
-		device = rpio.NewPi3Simulator(true)
+func getPin(num uint8, mode rpio.Mode, state rpio.State) rpio.Pin {
+	pin := rpio.Pin(num)
+	pin.Mode(mode)
+	if state == rpio.Low {
+		pin.Low()
 	} else {
-		device = rpio.NewPhysicalDevice()
+		pin.High()
 	}
-	return device
+	return pin
 }
