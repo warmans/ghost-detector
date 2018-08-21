@@ -33,7 +33,7 @@ func main() {
 	case "light":
 		panic("not implemented")
 	default:
-		inpt = input.NewRandom(time.Second)
+		inpt = input.NewLinearReader(time.Millisecond * 100)
 	}
 
 	//register console output

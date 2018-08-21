@@ -12,22 +12,14 @@ type Reader interface {
 	Close()
 }
 
-func NewRandom(frequency time.Duration) *Random {
-	r := &Random{
-		close: make(chan struct{}, 0),
-	}
-	rand.Seed(time.Now().UnixNano())
-	go r.start(frequency)
-	return r
-}
-
-// Random is a fake input implementation.
-type Random struct {
+// AbstractReader implements the register and close methods of a reader but doesn't actually emit any
+// values. Some other struct needs to wrap it and publish
+type AbstractReader struct {
 	clients sync.Map
 	close   chan struct{}
 }
 
-func (r *Random) Register(client chan uint) func() {
+func (r *AbstractReader) Register(client chan uint) func() {
 	id := uuid.New().String()
 	r.clients.Store(id, client)
 	return func() {
@@ -35,11 +27,27 @@ func (r *Random) Register(client chan uint) func() {
 	}
 }
 
-func (r *Random) Close() {
+func (r *AbstractReader) Close() {
 	r.close <- struct{}{}
 }
 
-func (r *Random) start(frequency time.Duration) {
+func NewRandomReader(frequency time.Duration) *RandomReader {
+	r := &RandomReader{
+		AbstractReader: &AbstractReader{
+			close: make(chan struct{}, 0),
+		},
+	}
+	rand.Seed(time.Now().UnixNano())
+	go r.start(frequency)
+	return r
+}
+
+// RandomReader is a fake input implementation.
+type RandomReader struct {
+	*AbstractReader
+}
+
+func (r *RandomReader) start(frequency time.Duration) {
 	ticker := time.NewTicker(frequency)
 	for {
 		select {
@@ -48,6 +56,41 @@ func (r *Random) start(frequency time.Duration) {
 				value.(chan uint) <- uint(rand.Intn(100))
 				return true
 			})
+		case <-r.close:
+			return //exit
+		}
+	}
+}
+
+func NewLinearReader(frequency time.Duration) *LinearReader {
+	r := &LinearReader{
+		AbstractReader: &AbstractReader{
+			close: make(chan struct{}, 0),
+		},
+	}
+	go r.start(frequency)
+	return r
+}
+
+// LinearReader is a fake input that just cycles from 0 - 100.
+type LinearReader struct {
+	*AbstractReader
+}
+
+func (r *LinearReader) start(frequency time.Duration) {
+	ticker := time.NewTicker(frequency)
+	var count uint
+	for {
+		select {
+		case <-ticker.C:
+			r.clients.Range(func(key, value interface{}) bool {
+				value.(chan uint) <- count
+				return true
+			})
+			count++
+			if count == 100 {
+				count = 0
+			}
 		case <-r.close:
 			return //exit
 		}
