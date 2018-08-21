@@ -5,13 +5,13 @@ import (
 	"fmt"
 )
 
-func NewConsoleOutput(input input.Reader) *Output {
+func New(input input.Reader) *Output {
 	out := &Output{
 		in: make(chan uint, 100),
 		stop: make(chan struct{}),
 	}
 	out.deregister = input.Register(out.in)
-	go out.start()
+	out.start()
 	return out
 }
 

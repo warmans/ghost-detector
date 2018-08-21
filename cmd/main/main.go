@@ -11,10 +11,13 @@ import (
 	"github.com/warmans/ghost-detector/pkg/output/console"
 	"time"
 	"github.com/warmans/ghost-detector/pkg/output/gauge"
+	"github.com/warmans/ghost-detector/pkg/output/creepy"
 )
 
 var (
-	sensorName = flag.String("sensor.name", "rand", "source of entropy rand, light")
+	inputRate = flag.Int("input.rate", 100, "Read from the input every N milliseconds")
+	inputName  = flag.String("input.name", "rand", "source of entropy rand, light")
+	outputName = flag.String("output.name", "console", "how to output the result of the input")
 )
 
 func main() {
@@ -29,20 +32,29 @@ func main() {
 	defer rpio.Close()
 
 	var inpt input.Reader
-	switch *sensorName {
+	switch *inputName {
 	case "light":
 		panic("not implemented")
+	case "linear":
+		inpt = input.NewLinearReader(time.Millisecond * time.Duration(*inputRate))
 	default:
-		inpt = input.NewLinearReader(time.Millisecond * 100)
+		inpt = input.NewRandomReader(time.Millisecond * time.Duration(*inputRate))
 	}
 
-	//register console output
-	consoleOut := console.NewConsoleOutput(inpt)
-	defer consoleOut.Close()
-
-	// register gauge output
-	guageOut := gauge.NewPercentageOutput(inpt, getPin(19, rpio.Pwm, rpio.Low))
-	defer guageOut.Close()
+	switch *outputName {
+	case "creepy":
+		//register console output
+		creepyOut := creepy.New(2, inpt, os.Stdin)
+		defer creepyOut.Close()
+	case "physical":
+		// register gauge output
+		guageOut := gauge.New(inpt, getPin(19, rpio.Pwm, rpio.Low))
+		defer guageOut.Close()
+	default:
+		//register console output
+		consoleOut := console.New(inpt)
+		defer consoleOut.Close()
+	}
 
 	fmt.Println("Detecting...")
 

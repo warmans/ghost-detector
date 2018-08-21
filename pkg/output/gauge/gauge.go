@@ -7,7 +7,7 @@ import (
 
 const cycleLen = 100
 
-func NewPercentageOutput(input input.Reader, pin rpio.Pin) *Percentage {
+func New(input input.Reader, pin rpio.Pin) *Percentage {
 	out := &Percentage{
 		in: make(chan uint, 100),
 		stop: make(chan struct{}),
@@ -19,7 +19,7 @@ func NewPercentageOutput(input input.Reader, pin rpio.Pin) *Percentage {
 	out.pin.DutyCycle(0, cycleLen)
 
 	out.deregister = input.Register(out.in)
-	go out.start()
+	out.start()
 	return out
 }
 
