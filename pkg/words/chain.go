@@ -6,7 +6,7 @@ import (
 	"io"
 	"strings"
 	"time"
-	"github.com/warmans/ghost-detector/pkg/entropy"
+	"github.com/warmans/ghost-detector/pkg/input"
 )
 
 
@@ -62,7 +62,7 @@ func (c *Chain) Build(r io.Reader) {
 }
 
 // Generate returns a string of at most n words generated from Chain.
-func (c *Chain) Generate(frequency time.Duration, ent entropy.Rander) chan string {
+func (c *Chain) Generate(frequency time.Duration, ent input.Rander) chan string {
 	out := make(chan string)
 	go func() {
 		ticker := time.NewTicker(time.Second * frequency)
@@ -82,7 +82,7 @@ func (c *Chain) Generate(frequency time.Duration, ent entropy.Rander) chan strin
 	return out
 }
 
-func (c *Chain) getStartPoint(ent entropy.Rander) Prefix {
+func (c *Chain) getStartPoint(ent input.Rander) Prefix {
 	start := ent.Intn(len(c.chain))
 	for k := range c.chain {
 		start--

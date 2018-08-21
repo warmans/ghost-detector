@@ -4,69 +4,60 @@ import (
 	"flag"
 	"os"
 	"fmt"
-	"github.com/warmans/ghost-detector/pkg/words"
 	"syscall"
 	"os/signal"
-	"github.com/warmans/ghost-detector/pkg/entropy"
-	"github.com/warmans/ghost-detector/pkg/entropy/sensor"
+	"github.com/warmans/ghost-detector/pkg/input"
 	"github.com/stianeikeland/go-rpio"
+	"github.com/warmans/ghost-detector/pkg/output/console"
 	"time"
-	"github.com/warmans/ghost-detector/pkg/output/guage"
+	"github.com/warmans/ghost-detector/pkg/output/gauge"
 )
 
 var (
-	prefixLen     = flag.Int("word.prefix", 2, "prefix length in words")
-	wordFrequency = flag.Int("word.frequency", 1, "print a word every N seconds")
 	sensorName = flag.String("sensor.name", "rand", "source of entropy rand, light")
 )
 
 func main() {
-
-	if "" == os.Getenv("SUDO_USER") {
-		panic("pwm requires sudo to work")
-	}
-
 	flag.Parse()
+
+	// possibly fail if the env is not correct.
+	verifyEnv()
 
 	if err := rpio.Open(); err != nil {
 		panic(err)
 	}
 	defer rpio.Close()
 
-	var ent entropy.Rander
+	var inpt input.Reader
 	switch *sensorName {
 	case "light":
-		ent = sensor.NewLightSensor(getPin(4, rpio.Input, rpio.Low))
+		panic("not implemented")
 	default:
-		ent = entropy.NewRand()
+		inpt = input.NewRandom(time.Second)
 	}
 
-	fmt.Println("Reading input...")
-	chain := words.NewChain(*prefixLen) // Initialize a new Chain.
-	chain.Build(os.Stdin)               // Build chains from standard input.
+	//register console output
+	consoleOut := console.NewConsoleOutput(inpt)
+	defer consoleOut.Close()
 
-
-	//guage
-	pin := rpio.Pin(19)
-	pin.Mode(rpio.Pwm)
-	g := guage.NewPercentageGuage(pin)
+	// register gauge output
+	guageOut := gauge.NewPercentageOutput(inpt, getPin(19, rpio.Pwm, rpio.Low))
+	defer guageOut.Close()
 
 	fmt.Println("Detecting...")
-	chainOut := chain.Generate(time.Duration(*wordFrequency), ent) // Generate text.
-	for {
-		c := make(chan os.Signal)
-		signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-		select {
-		case <-c:
-			fmt.Fprint(os.Stderr, "\n\nShutting down")
-			return
-		case out := <-chainOut:
-			fmt.Printf("%s ", out)
-			g.Write(ent.Intn(100))
-		}
+
+	// await term
+	c := make(chan os.Signal)
+	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
+	select {
+	case <-c:
+		fmt.Fprint(os.Stderr, "\n\nShutting down")
+		//stop all input
+		inpt.Close()
+		// stop all output
+		return
 	}
 }
-
 
 func getPin(num uint8, mode rpio.Mode, state rpio.State) rpio.Pin {
 	pin := rpio.Pin(num)
@@ -77,4 +68,10 @@ func getPin(num uint8, mode rpio.Mode, state rpio.State) rpio.Pin {
 		pin.High()
 	}
 	return pin
+}
+
+func verifyEnv() {
+	if "" == os.Getenv("SUDO_USER") {
+		panic("pwm requires sudo to work")
+	}
 }
