@@ -26,11 +26,13 @@ func main() {
 	// possibly fail if the env is not correct.
 	verifyEnv()
 
+	fmt.Println("Init device...")
 	if err := rpio.Open(); err != nil {
 		panic(err)
 	}
 	defer rpio.Close()
 
+	fmt.Println("Init reader...")
 	var inpt input.Reader
 	switch *inputName {
 	case "light":
@@ -41,6 +43,7 @@ func main() {
 		inpt = input.NewRandomReader(time.Millisecond * time.Duration(*inputRate))
 	}
 
+	fmt.Println("Init outputs...")
 	switch *outputName {
 	case "creepy":
 		//register console output
@@ -50,13 +53,16 @@ func main() {
 		// register gauge output
 		guageOut := gauge.New(inpt, getPin(19, rpio.Pwm, rpio.Low))
 		defer guageOut.Close()
+		//Register LED output
+		ledOut := gauge.New(inpt, getPin(13, rpio.Pwm, rpio.Low))
+		defer ledOut.Close()
 	default:
 		//register console output
 		consoleOut := console.New(inpt)
 		defer consoleOut.Close()
 	}
 
-	fmt.Println("Detecting...")
+	fmt.Println("Ready!")
 
 	// await term
 	c := make(chan os.Signal)
