@@ -1,10 +1,11 @@
 package input
 
 import (
-	"time"
 	"math/rand"
-	"github.com/google/uuid"
 	"sync"
+	"time"
+
+	"github.com/gofrs/uuid"
 )
 
 type Reader interface {
@@ -20,7 +21,7 @@ type AbstractReader struct {
 }
 
 func (r *AbstractReader) Register(client chan uint) func() {
-	id := uuid.New().String()
+	id := uuid.Must(uuid.NewV4()).String()
 	r.clients.Store(id, client)
 	return func() {
 		r.clients.Delete(id)

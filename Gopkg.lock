@@ -2,14 +2,45 @@
 
 
 [[projects]]
+  name = "github.com/gofrs/uuid"
+  packages = ["."]
+  revision = "d41eeda0759468834c84365a32d1b1ec4264c75f"
+  version = "v3.1.0"
+
+[[projects]]
   name = "github.com/stianeikeland/go-rpio"
   packages = ["."]
   revision = "3abdd2207d33843c1c3fbea540bdf07990075c03"
   version = "4.1.0"
 
+[[projects]]
+  name = "go.uber.org/atomic"
+  packages = ["."]
+  revision = "1ea20fb1cbb1cc08cbd0d913a96dead89aa18289"
+  version = "v1.3.2"
+
+[[projects]]
+  name = "go.uber.org/multierr"
+  packages = ["."]
+  revision = "3c4937480c32f4c13a875a1829af76c98ca3d40a"
+  version = "v1.1.0"
+
+[[projects]]
+  name = "go.uber.org/zap"
+  packages = [
+    ".",
+    "buffer",
+    "internal/bufferpool",
+    "internal/color",
+    "internal/exit",
+    "zapcore"
+  ]
+  revision = "ff33455a0e382e8a81d14dd7c922020b6b5e7982"
+  version = "v1.9.1"
+
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "5c0d37cd42c778a6a98cef9b51467e1fa5e2972b937973b11cffec6a6592545c"
+  inputs-digest = "02ac06276b4edb79fedd8341313c63acc96233bd214076ca0d5bcfb861061b37"
   solver-name = "gps-cdcl"
   solver-version = 1

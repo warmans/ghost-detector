@@ -3,19 +3,22 @@ package main
 import (
 	"flag"
 	"os"
-	"fmt"
-	"syscall"
+	"os/exec"
 	"os/signal"
-	"github.com/warmans/ghost-detector/pkg/input"
-	"github.com/stianeikeland/go-rpio"
-	"github.com/warmans/ghost-detector/pkg/output/console"
+	"syscall"
 	"time"
-	"github.com/warmans/ghost-detector/pkg/output/gauge"
+
+	"github.com/stianeikeland/go-rpio"
+	"github.com/warmans/ghost-detector/pkg/input"
+	"github.com/warmans/ghost-detector/pkg/input/button"
+	"github.com/warmans/ghost-detector/pkg/output/console"
 	"github.com/warmans/ghost-detector/pkg/output/creepy"
+	"github.com/warmans/ghost-detector/pkg/output/gauge"
+	"go.uber.org/zap"
 )
 
 var (
-	inputRate = flag.Int("input.rate", 100, "Read from the input every N milliseconds")
+	inputRate  = flag.Int("input.rate", 100, "Read from the input every N milliseconds")
 	inputName  = flag.String("input.name", "rand", "source of entropy rand, light")
 	outputName = flag.String("output.name", "console", "how to output the result of the input")
 )
@@ -23,27 +26,41 @@ var (
 func main() {
 	flag.Parse()
 
+	logger, _ := zap.NewDevelopment(zap.AddCaller(), zap.AddStacktrace(zap.ErrorLevel))
+	defer logger.Sync()
+
 	// possibly fail if the env is not correct.
 	verifyEnv()
 
-	fmt.Println("Init device...")
+	logger.Info("Init device")
 	if err := rpio.Open(); err != nil {
 		panic(err)
 	}
 	defer rpio.Close()
 
-	fmt.Println("Init reader...")
+	logger.Info("Init inputs")
 	var inpt input.Reader
 	switch *inputName {
 	case "light":
-		panic("not implemented")
+		logger.Fatal("not implemented")
 	case "linear":
 		inpt = input.NewLinearReader(time.Millisecond * time.Duration(*inputRate))
 	default:
 		inpt = input.NewRandomReader(time.Millisecond * time.Duration(*inputRate))
 	}
 
-	fmt.Println("Init outputs...")
+	button.New(
+		getPin(5, rpio.Input, rpio.Low),
+		func() {
+			logger.Info("Triggered shutdown")
+			cmd := exec.Command("poweroff")
+			if err := cmd.Run(); err != nil {
+				logger.Fatal("Failed to poweroff", zap.Error(err))
+			}
+		},
+	)
+
+	logger.Info("Init outputs")
 	switch *outputName {
 	case "creepy":
 		//register console output
@@ -62,14 +79,14 @@ func main() {
 		defer consoleOut.Close()
 	}
 
-	fmt.Println("Ready!")
+	logger.Info("Ready")
 
 	// await term
 	c := make(chan os.Signal)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	select {
 	case <-c:
-		fmt.Fprint(os.Stderr, "\n\nShutting down")
+		logger.Info("Shutting down")
 		//stop all input
 		inpt.Close()
 		// stop all output
