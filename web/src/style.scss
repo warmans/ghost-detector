@@ -1,0 +1,27 @@
+@import "vars.scss";
+@import "~bootstrap/scss/bootstrap.scss";
+@import "~chartist/dist/scss/chartist.scss";
+
+body {
+    background-color: darken(#343A40, 5%);
+}
+
+.container-fluid {
+  padding-top: 80px;
+}
+
+.navbar-brand {
+  font-weight: bold;
+}
+
+.ct-chart {
+  height: 400px;
+}
+
+.ct-line {
+  stroke-width: 1px;
+}
+.ct-point {
+  display: none;
+}
+
